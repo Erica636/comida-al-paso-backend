@@ -87,3 +87,5 @@
 [INFO] 2025-11-16 11:36:33,807 django.utils.autoreload autoreload 5452 36548 - Watching for file changes with StatReloader
 [INFO] 2025-11-16 18:40:19,642 django.utils.autoreload autoreload 5452 36548 - C:\Users\erica\Documents\Ansaloni, Erica R\comida_al_paso_project\comida_al_paso\settings.py changed, reloading.
 [INFO] 2025-11-16 18:40:22,099 django.utils.autoreload autoreload 16300 24412 - Watching for file changes with StatReloader
+[INFO] 2025-11-16 18:42:54,564 django.utils.autoreload autoreload 16300 24412 - C:\Users\erica\Documents\Ansaloni, Erica R\comida_al_paso_project\comida_al_paso\settings.py changed, reloading.
+[INFO] 2025-11-16 18:42:55,305 django.utils.autoreload autoreload 14780 28280 - Watching for file changes with StatReloader
