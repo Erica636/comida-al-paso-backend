@@ -1,5 +1,6 @@
 from pathlib import Path
 import os
+import json
 from datetime import timedelta
 from dotenv import load_dotenv
 
@@ -17,7 +18,19 @@ ENV = os.getenv('ENV', 'development')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+# -----------------------------
+# ALLOWED_HOSTS correcto para RAILWAY
+# -----------------------------
+raw_hosts = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1")
+
+try:
+    parsed = json.loads(raw_hosts)  # Si viene como JSON
+    if isinstance(parsed, list):
+        ALLOWED_HOSTS = parsed
+    else:
+        ALLOWED_HOSTS = [str(parsed)]
+except json.JSONDecodeError:
+    ALLOWED_HOSTS = [h.strip() for h in raw_hosts.split(",") if h.strip()]
 
 # Application definition
 INSTALLED_APPS = [

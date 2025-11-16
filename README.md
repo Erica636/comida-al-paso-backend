@@ -174,3 +174,5 @@ CORS está configurado para desarrollo local
 Erica Ansaloni
 
 ¿Problemas? Revisa los logs en /logs/django.log o los logs de Docker con docker-compose logs -f web
+## Deploy en Railway
+Proyecto deployado en Railway con MySQL.
