@@ -147,7 +147,9 @@ MEDIA_ROOT = BASE_DIR / 'media'
 # CORS
 # ---------------------------
 
-CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOWED_ORIGINS = os.getenv('CORS_ALLOWED_ORIGINS', '').split(',')
+if not CORS_ALLOWED_ORIGINS or CORS_ALLOWED_ORIGINS == ['']:
+    CORS_ALLOW_ALL_ORIGINS = True
 
 # ---------------------------
 # REST FRAMEWORK + JWT
