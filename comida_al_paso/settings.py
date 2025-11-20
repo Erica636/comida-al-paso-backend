@@ -164,19 +164,10 @@ CSRF_TRUSTED_ORIGINS = [
 # ---------------------------
 
 REST_FRAMEWORK = {
-    # Autenticación: JWT primero, Session opcional
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
         'rest_framework.authentication.SessionAuthentication',
     ),
-
-    # Permisos:
-    # GET = público
-    # POST/PUT/DELETE = requieren token
-    'DEFAULT_PERMISSION_CLASSES': (
-        'rest_framework.permissions.IsAuthenticatedOrReadOnly',
-    ),
-
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 10,
 }
