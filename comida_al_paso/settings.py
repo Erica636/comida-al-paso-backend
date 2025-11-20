@@ -43,7 +43,7 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',  # WhiteNoise para archivos estáticos
     
-    # 🚨 SOLUCIÓN 1: CORS debe ir aquí, antes de Session, Auth y Common Middleware
+    # CORS debe ir aquí, ANTES de Session y Auth
     'corsheaders.middleware.CorsMiddleware', 
     
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -141,8 +141,9 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # ---------------------------
-# MEDIA (si se usa)
+# MEDIA
 # ---------------------------
+
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
@@ -163,18 +164,21 @@ CSRF_TRUSTED_ORIGINS = [
 # ---------------------------
 
 REST_FRAMEWORK = {
-    # 🚨 SOLUCIÓN 2: Clase de Autenticación
+    # Autenticación: JWT primero, Session opcional
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
-        # SessionAuth permite que las peticiones no autenticadas sean manejadas por el permiso.
-        'rest_framework.authentication.SessionAuthentication', 
+        'rest_framework.authentication.SessionAuthentication',
     ),
-    
-    # 🚨 SOLUCIÓN 2: Permisos por defecto
-    # Permite que las vistas sin decoración específica sean públicas.
+
+    # Permisos:
+    # GET = público
+    # POST/PUT/DELETE = requieren token
     'DEFAULT_PERMISSION_CLASSES': (
-        'rest_framework.permissions.AllowAny',
-    )
+        'rest_framework.permissions.IsAuthenticatedOrReadOnly',
+    ),
+
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 10,
 }
 
 SIMPLE_JWT = {
