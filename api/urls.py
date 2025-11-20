@@ -1,4 +1,4 @@
-from django.urls import path, include, re_path
+from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from . import views
 
@@ -9,13 +9,10 @@ urlpatterns = [
     path('', views.api_home, name='api-home'),
     path('test/', views.test_api, name='test-api'),
 
-    # Categorías (router)
+    # Rutas de Django REST Framework
     path('', include(router.urls)),
 
-    # Productos (GET público, POST/PUT/DELETE con token)
+    # PRODUCTOS
     path('productos/', views.productos_list, name='productos-list'),
-
-    # Productos por categoría (IMPORTANTE: barra al final)
-    re_path(r'^productos/(?P<categoria_nombre>[^/]+)/$', views.productos_por_categoria,
-            name='productos-por-categoria'),
+    path('productos/<str:categoria_nombre>/', views.productos_por_categoria, name='productos-por-categoria'),
 ]
