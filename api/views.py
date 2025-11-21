@@ -7,6 +7,7 @@ from rest_framework.permissions import (
     IsAuthenticatedOrReadOnly,
 )
 from rest_framework.response import Response
+from django.contrib.auth.models import User
 from .models import Categoria, Producto
 from .serializers import (
     CategoriaSerializer,
@@ -31,6 +32,7 @@ def api_home(request):
             'GET  /api/test - Endpoint de prueba',
             'POST /api/token/ - Obtener token JWT',
             'POST /api/token/refresh/ - Refrescar token JWT',
+            'POST /api/register/ - Registrar nuevo usuario',
             'GET  /api/categorias/ - Obtener todas las categorías',
             'POST /api/categorias/ - Crear nueva categoría (requiere autenticación)',
             'GET  /api/productos/ - Obtener todos los productos',
@@ -115,7 +117,8 @@ def productos_list(request):
         create_serializer = ProductoCreateSerializer(data=request.data)
 
         if not create_serializer.is_valid():
-            logger.warning(f"Datos inválidos para crear producto: {create_serializer.errors}")
+            logger.warning(
+                f"Datos inválidos para crear producto: {create_serializer.errors}")
             return Response(
                 create_serializer.errors,
                 status=status.HTTP_400_BAD_REQUEST
@@ -152,7 +155,50 @@ def productos_por_categoria(request, categoria_nombre):
     )
 
     if not productos.exists():
-        logger.warning(f"No se encontraron productos para la categoría: {categoria_nombre}")
+        logger.warning(
+            f"No se encontraron productos para la categoría: {categoria_nombre}")
 
     serializer = ProductoSerializer(productos, many=True)
     return Response(serializer.data)
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def register(request):
+    """Registrar un nuevo usuario"""
+    username = request.data.get('username')
+    password = request.data.get('password')
+    email = request.data.get('email', '')
+
+    if not username or not password:
+        logger.warning("Intento de registro sin username o password")
+        return Response(
+            {'error': 'Username y password son requeridos'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    if User.objects.filter(username=username).exists():
+        logger.warning(
+            f"Intento de registro con username existente: {username}")
+        return Response(
+            {'error': 'El username ya existe'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    try:
+        user = User.objects.create_user(
+            username=username,
+            password=password,
+            email=email
+        )
+        logger.info(f"Usuario registrado exitosamente: {username}")
+        return Response({
+            'mensaje': 'Usuario creado exitosamente',
+            'username': user.username
+        }, status=status.HTTP_201_CREATED)
+    except Exception as e:
+        logger.error(f"Error al registrar usuario: {str(e)}")
+        return Response(
+            {'error': str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
