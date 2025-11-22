@@ -9,6 +9,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq-dev \
     gcc \
+    dos2unix \
     && rm -rf /var/lib/apt/lists/*
 
 # Establecer directorio de trabajo
@@ -21,9 +22,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copiar código fuente
 COPY . .
 
-# Copiar y dar permisos al entrypoint
+# Copiar entrypoint, convertir line endings y dar permisos
 COPY entrypoint.sh /usr/local/bin/
-RUN chmod +x /usr/local/bin/entrypoint.sh
+RUN dos2unix /usr/local/bin/entrypoint.sh && \
+    chmod +x /usr/local/bin/entrypoint.sh
 
 # Crear directorios necesarios
 RUN mkdir -p /app/media /app/logs /app/staticfiles
