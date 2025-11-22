@@ -4,7 +4,7 @@
   "pk": 9,
   "fields": {
     "nombre": "Hamburguesas",
-    "descripcion": "Hamburguesas cl·sicas y gourmet"
+    "descripcion": "Hamburguesas cl√°sicas y gourmet"
   }
 },
 {
@@ -28,7 +28,7 @@
   "pk": 12,
   "fields": {
     "nombre": "Parrilla",
-    "descripcion": "Carnes a la parrilla y chorip·n"
+    "descripcion": "Carnes a la parrilla y chorip√°n"
   }
 },
 {
@@ -52,7 +52,7 @@
   "pk": 15,
   "fields": {
     "nombre": "Bebidas",
-    "descripcion": "Bebidas frÌas y calientes"
+    "descripcion": "Bebidas fr√≠as y calientes"
   }
 },
 {
@@ -67,7 +67,7 @@
   "model": "api.producto",
   "pk": 26,
   "fields": {
-    "nombre": "Hamburguesa Cl·sica",
+    "nombre": "Hamburguesa Cl√°sica",
     "descripcion": "",
     "precio": "2500.00",
     "categoria": 9,
@@ -158,7 +158,7 @@
   "model": "api.producto",
   "pk": 34,
   "fields": {
-    "nombre": "Empanadas de JamÛn y Queso",
+    "nombre": "Empanadas de Jam√≥n y Queso",
     "descripcion": "",
     "precio": "180.00",
     "categoria": 11,
@@ -236,7 +236,7 @@
   "model": "api.producto",
   "pk": 40,
   "fields": {
-    "nombre": "—oquis con Salsa",
+    "nombre": "√ëoquis con Salsa",
     "descripcion": "",
     "precio": "2800.00",
     "categoria": 13,
@@ -262,7 +262,7 @@
   "model": "api.producto",
   "pk": 42,
   "fields": {
-    "nombre": "Ensalada CÈsar",
+    "nombre": "Ensalada C√©sar",
     "descripcion": "",
     "precio": "1800.00",
     "categoria": 14,
