@@ -21,6 +21,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copiar código fuente
 COPY . .
 
+# Copiar y dar permisos al entrypoint
+COPY entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
 # Crear directorios necesarios
 RUN mkdir -p /app/media /app/logs /app/staticfiles
 
@@ -33,6 +37,9 @@ USER appuser
 
 # Exponer puerto
 EXPOSE 8000
+
+# Usar entrypoint
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 
 # Comando por defecto
 CMD ["gunicorn", "comida_al_paso.wsgi:application", "--bind", "0.0.0.0:8000"]
