@@ -23,6 +23,17 @@ else:
     print('Superusuario ya existe')
 END
 
+echo "Cargando datos iniciales si la base esta vacia..."
+python manage.py shell << END
+from api.models import Producto
+if Producto.objects.count() == 0:
+    import os
+    os.system('python manage.py loaddata fixtures/productos_inicial.json')
+    print('Datos iniciales cargados')
+else:
+    print('Ya existen productos en la base')
+END
+
 echo "Recolectando archivos estaticos..."
 python manage.py collectstatic --noinput
 
