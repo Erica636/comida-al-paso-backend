@@ -1,29 +1,26 @@
-from django.urls import path, include
-from rest_framework.routers import DefaultRouter
-from rest_framework_simplejwt.views import (
-    TokenObtainPairView,
-    TokenRefreshView,
-    TokenVerifyView,
-)
+from django.urls import path
 from . import views
-
-router = DefaultRouter()
-router.register(r'categorias', views.CategoriaViewSet, basename='categoria')
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 urlpatterns = [
-    path('', views.api_home, name='api-home'),
-    path('test/', views.test_api, name='test-api'),
-
-    # JWT AUTHENTICATION
+    # Autenticación
+    path('register/', views.register, name='register'),
     path('token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
-    path('token/verify/', TokenVerifyView.as_view(), name='token_verify'),
-    path('register/', views.register, name='register'),
-    # Rutas de Django REST Framework
-    path('', include(router.urls)),
+    path('user/', views.get_user_info, name='user_info'),
 
-    # PRODUCTOS
-    path('productos/', views.productos_list, name='productos-list'),
-    path('productos/<str:categoria_nombre>/',
-         views.productos_por_categoria, name='productos-por-categoria'),
+    # Productos
+    path('productos/', views.listar_productos, name='listar_productos'),
+    path('productos/crear/', views.crear_producto, name='crear_producto'),
+    path('productos/<int:pk>/', views.actualizar_producto,
+         name='actualizar_producto'),
+    path('productos/<int:pk>/eliminar/',
+         views.eliminar_producto, name='eliminar_producto'),
+
+    # Categorías
+    path('categorias/', views.listar_categorias, name='listar_categorias'),
+    path('categorias/crear/', views.crear_categoria, name='crear_categoria'),
+
+    # Compras
+    path('comprar/', views.procesar_compra, name='procesar_compra'),
 ]

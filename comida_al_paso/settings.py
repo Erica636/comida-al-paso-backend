@@ -9,7 +9,8 @@ load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-change-this-in-production')
+SECRET_KEY = os.getenv(
+    'SECRET_KEY', 'django-insecure-change-this-in-production')
 
 # Environment
 ENV = os.getenv('ENV', 'development').lower()
@@ -17,8 +18,8 @@ ENV = os.getenv('ENV', 'development').lower()
 # DEBUG acepta: "True", "true", "1", "yes"
 DEBUG = os.getenv('DEBUG', 'False').lower() in ('true', '1', 'yes')
 
-# ALLOWED_HOSTS - Permitir todos temporalmente
-ALLOWED_HOSTS = ['*']
+# ALLOWED_HOSTS desde variable de entorno
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 
 # Apps instaladas
 INSTALLED_APPS = [
@@ -41,11 +42,8 @@ INSTALLED_APPS = [
 # Middleware
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',  # WhiteNoise para archivos estáticos
-    
-    # CORS debe ir aquí, ANTES de Session y Auth
-    'corsheaders.middleware.CorsMiddleware', 
-    
+    'whitenoise.middleware.WhiteNoiseMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -78,10 +76,22 @@ WSGI_APPLICATION = 'comida_al_paso.wsgi.application'
 # BASE DE DATOS
 # ---------------------------
 
-DB_ENGINE = os.getenv('DB_ENGINE', 'django.db.backends.sqlite3')
+DB_ENGINE = os.getenv('DB_ENGINE', 'sqlite').lower()
 
-if 'mysql' in DB_ENGINE.lower():
-    # Base de datos Railway MySQL
+if 'postgres' in DB_ENGINE:
+    # PostgreSQL (Docker / Producción)
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.getenv('POSTGRES_DB', 'comidadb'),
+            'USER': os.getenv('POSTGRES_USER', 'postgres'),
+            'PASSWORD': os.getenv('POSTGRES_PASSWORD', 'postgres'),
+            'HOST': os.getenv('POSTGRES_HOST', 'db'),
+            'PORT': os.getenv('POSTGRES_PORT', '5432'),
+        }
+    }
+elif 'mysql' in DB_ENGINE:
+    # MySQL (Railway u otro)
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.mysql',
@@ -96,7 +106,7 @@ if 'mysql' in DB_ENGINE.lower():
         }
     }
 else:
-    # Base SQLite local
+    # SQLite (desarrollo local)
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
@@ -138,7 +148,7 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
 
 # ---------------------------
 # MEDIA
@@ -154,10 +164,11 @@ MEDIA_ROOT = BASE_DIR / 'media'
 CORS_ALLOWED_ORIGINS = os.getenv('CORS_ALLOWED_ORIGINS', '').split(',')
 if not CORS_ALLOWED_ORIGINS or CORS_ALLOWED_ORIGINS == ['']:
     CORS_ALLOW_ALL_ORIGINS = True
-    
-CSRF_TRUSTED_ORIGINS = [
-    'https://comida-al-paso-frontend-sh2b.vercel.app',
-]
+
+CSRF_TRUSTED_ORIGINS = os.getenv(
+    'CSRF_TRUSTED_ORIGINS',
+    'http://localhost:5173,http://127.0.0.1:5173'
+).split(',')
 
 # ---------------------------
 # REST FRAMEWORK + JWT
@@ -169,12 +180,12 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.SessionAuthentication',
     ),
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 10,
+    'PAGE_SIZE': 100,
 }
 
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(hours=24),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=int(os.getenv('JWT_ACCESS_TOKEN_LIFETIME', '60'))),
+    'REFRESH_TOKEN_LIFETIME': timedelta(minutes=int(os.getenv('JWT_REFRESH_TOKEN_LIFETIME', '1440'))),
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
 
@@ -206,11 +217,11 @@ LOGGING = {
     'loggers': {
         'django': {
             'handlers': ['console'],
-            'level': 'INFO',
+            'level': os.getenv('DJANGO_LOG_LEVEL', 'INFO'),
         },
         'api': {
             'handlers': ['console'],
-            'level': 'DEBUG',
+            'level': os.getenv('API_LOG_LEVEL', 'DEBUG'),
         },
     },
 }
@@ -219,8 +230,14 @@ LOGGING = {
 # SEGURIDAD EN PRODUCCIÓN
 # ---------------------------
 
-if 'prod' in ENV:
-    SECURE_SSL_REDIRECT = False  # Railway usa proxy
+if not DEBUG:
+    SECURE_SSL_REDIRECT = os.getenv(
+        'SECURE_SSL_REDIRECT', 'False').lower() in ('true', '1', 'yes')
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-    SESSION_COOKIE_SECURE = True
-    CSRF_COOKIE_SECURE = True
+    SESSION_COOKIE_SECURE = os.getenv(
+        'SESSION_COOKIE_SECURE', 'True').lower() in ('true', '1', 'yes')
+    CSRF_COOKIE_SECURE = os.getenv(
+        'CSRF_COOKIE_SECURE', 'True').lower() in ('true', '1', 'yes')
+    SECURE_BROWSER_XSS_FILTER = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    X_FRAME_OPTIONS = 'DENY'

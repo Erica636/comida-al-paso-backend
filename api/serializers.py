@@ -7,42 +7,55 @@ class CategoriaSerializer(serializers.ModelSerializer):
         model = Categoria
         fields = ['id', 'nombre', 'descripcion']
 
+    def validate_nombre(self, value):
+        if not value or not value.strip():
+            raise serializers.ValidationError(
+                'El nombre de la categoría es obligatorio.')
+        if len(value.strip()) < 2:
+            raise serializers.ValidationError(
+                'El nombre debe tener al menos 2 caracteres.')
+        return value.strip()
+
 
 class ProductoSerializer(serializers.ModelSerializer):
-    categoria = serializers.CharField(source='categoria.nombre')
-    descripcion = serializers.CharField(
-        source='categoria.descripcion', 
-        read_only=True
-    )
-    
+    categoria_nombre = serializers.SerializerMethodField()
+
     class Meta:
         model = Producto
-        fields = ['nombre', 'categoria', 'precio', 'stock', 'descripcion']
+        fields = ['id', 'nombre', 'categoria', 'categoria_nombre',
+                  'precio', 'stock', 'descripcion', 'disponible']
 
+    def get_categoria_nombre(self, obj):
+        if obj.categoria:
+            return obj.categoria.nombre
+        return None
 
-class ProductoCreateSerializer(serializers.Serializer):
-    nombre_producto = serializers.CharField(max_length=200)
-    nombre_categoria = serializers.CharField(max_length=100)
-    precio = serializers.DecimalField(max_digits=10, decimal_places=2)
-    stock = serializers.IntegerField(default=0)
-    
-    def create(self, validated_data):
-        nombre_producto = validated_data['nombre_producto']
-        nombre_categoria = validated_data['nombre_categoria']
-        precio = validated_data['precio']
-        stock = validated_data.get('stock', 0)
-        
-        try:
-            categoria = Categoria.objects.get(nombre__iexact=nombre_categoria)
-        except Categoria.DoesNotExist:
+    def validate_nombre(self, value):
+        if not value or not value.strip():
             raise serializers.ValidationError(
-                {'error': 'Categoría no encontrada'}
-            )
-        
-        producto = Producto.objects.create(
-            nombre=nombre_producto,
-            categoria=categoria,
-            precio=precio,
-            stock=stock
-        )
-        return producto
+                'El nombre del producto es obligatorio.')
+        if len(value.strip()) < 2:
+            raise serializers.ValidationError(
+                'El nombre debe tener al menos 2 caracteres.')
+        return value.strip()
+
+    def validate_precio(self, value):
+        if value is None:
+            raise serializers.ValidationError('El precio es obligatorio.')
+        if value <= 0:
+            raise serializers.ValidationError('El precio debe ser mayor a 0.')
+        return value
+
+    def validate_stock(self, value):
+        if value is None:
+            raise serializers.ValidationError('El stock es obligatorio.')
+        if value < 0:
+            raise serializers.ValidationError(
+                'El stock no puede ser negativo.')
+        return value
+
+    def validate_categoria(self, value):
+        if not value:
+            raise serializers.ValidationError(
+                'Debe seleccionar una categoría.')
+        return value

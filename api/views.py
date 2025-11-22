@@ -1,204 +1,217 @@
-import logging
-from rest_framework import viewsets, status
+from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import (
-    AllowAny,
-    IsAuthenticated,
-    IsAuthenticatedOrReadOnly,
-)
 from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.pagination import PageNumberPagination
 from django.contrib.auth.models import User
-from .models import Categoria, Producto
-from .serializers import (
-    CategoriaSerializer,
-    ProductoSerializer,
-    ProductoCreateSerializer,
-)
-
-# Configurar logger
-logger = logging.getLogger('api')
+from .models import Producto, Categoria
+from .serializers import ProductoSerializer, CategoriaSerializer
+from .permissions import IsAdminUser
 
 
-@api_view(['GET'])
-@permission_classes([AllowAny])
-def api_home(request):
-    """Página de inicio de la API"""
-    logger.info("Acceso a la página de inicio de la API")
-    return Response({
-        'mensaje': 'Bienvenido a la API de Comida al Paso',
-        'version': '1.0.0',
-        'endpoints_disponibles': [
-            'GET  /api/ - Información de la API',
-            'GET  /api/test - Endpoint de prueba',
-            'POST /api/token/ - Obtener token JWT',
-            'POST /api/token/refresh/ - Refrescar token JWT',
-            'POST /api/register/ - Registrar nuevo usuario',
-            'GET  /api/categorias/ - Obtener todas las categorías',
-            'POST /api/categorias/ - Crear nueva categoría (requiere autenticación)',
-            'GET  /api/productos/ - Obtener todos los productos',
-            'POST /api/productos/ - Crear nuevo producto (requiere autenticación)',
-            'GET  /api/productos/<categoria> - Productos por categoría'
-        ],
-        'documentacion': 'Envía requests a los endpoints para interactuar con el inventario'
-    })
-
-
-@api_view(['GET'])
-@permission_classes([AllowAny])
-def test_api(request):
-    """Endpoint de prueba"""
-    logger.info("Test de API ejecutado")
-    total_categorias = Categoria.objects.count()
-    total_productos = Producto.objects.count()
-    return Response({
-        'mensaje': 'API funcionando correctamente',
-        'total_categorias': total_categorias,
-        'total_productos': total_productos
-    })
-
-
-class CategoriaViewSet(viewsets.ModelViewSet):
-    queryset = Categoria.objects.all()
-    serializer_class = CategoriaSerializer
-    permission_classes = [AllowAny]
-
-    def create(self, request, *args, **kwargs):
-        logger.info(f"Intento de crear categoría por usuario: {request.user}")
-        nombre = request.data.get('nombre')
-        descripcion = request.data.get('descripcion', '')
-
-        if not nombre:
-            logger.warning("Intento de crear categoría sin nombre")
-            return Response(
-                {'error': 'Nombre es requerido'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        try:
-            categoria = Categoria.objects.create(
-                nombre=nombre,
-                descripcion=descripcion
-            )
-            serializer = self.get_serializer(categoria)
-            logger.info(f"Categoría creada exitosamente: {nombre}")
-            return Response({
-                'mensaje': 'Categoría creada exitosamente',
-                'categoria': serializer.data
-            }, status=status.HTTP_201_CREATED)
-        except Exception as e:
-            logger.error(f"Error al crear categoría: {str(e)}")
-            return Response(
-                {'error': str(e)},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
-
-
-@api_view(['GET', 'POST'])
-@permission_classes([AllowAny])
-def productos_list(request):
-    """Listar todos los productos o crear uno nuevo"""
-
-    # GET → abierto al público
-    if request.method == 'GET':
-        logger.info("Listado de productos solicitado")
-        productos = Producto.objects.all()
-        serializer = ProductoSerializer(productos, many=True)
-        return Response(serializer.data)
-
-    # POST → requiere estar logueado
-    if request.method == 'POST':
-        if not request.user.is_authenticated:
-            return Response(
-                {"error": "Autenticación requerida para crear productos"},
-                status=status.HTTP_401_UNAUTHORIZED
-            )
-
-        logger.info(f"Intento de crear producto por usuario: {request.user}")
-        create_serializer = ProductoCreateSerializer(data=request.data)
-
-        if not create_serializer.is_valid():
-            logger.warning(
-                f"Datos inválidos para crear producto: {create_serializer.errors}")
-            return Response(
-                create_serializer.errors,
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        try:
-            producto = create_serializer.save()
-            logger.info(f"Producto creado exitosamente: {producto.nombre}")
-
-            return Response({
-                'mensaje': 'Producto creado exitosamente',
-                'producto': {
-                    'nombre': producto.nombre,
-                    'categoria': producto.categoria.nombre,
-                    'precio': float(producto.precio),
-                    'stock': producto.stock
-                }
-            }, status=status.HTTP_201_CREATED)
-        except Exception as e:
-            logger.error(f"Error al crear producto: {str(e)}")
-            return Response(
-                {'error': str(e)},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
-
-
-@api_view(['GET'])
-@permission_classes([AllowAny])
-def productos_por_categoria(request, categoria_nombre):
-    """Obtener productos de una categoría específica"""
-    logger.info(f"Búsqueda de productos por categoría: {categoria_nombre}")
-    productos = Producto.objects.filter(
-        categoria__nombre__iexact=categoria_nombre
-    )
-
-    if not productos.exists():
-        logger.warning(
-            f"No se encontraron productos para la categoría: {categoria_nombre}")
-
-    serializer = ProductoSerializer(productos, many=True)
-    return Response(serializer.data)
-
+# ========== AUTENTICACIÓN ==========
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def register(request):
-    """Registrar un nuevo usuario"""
+    """
+    Registrar nuevo usuario
+    """
     username = request.data.get('username')
+    email = request.data.get('email')
     password = request.data.get('password')
-    email = request.data.get('email', '')
 
     if not username or not password:
-        logger.warning("Intento de registro sin username o password")
         return Response(
             {'error': 'Username y password son requeridos'},
             status=status.HTTP_400_BAD_REQUEST
         )
 
     if User.objects.filter(username=username).exists():
-        logger.warning(
-            f"Intento de registro con username existente: {username}")
         return Response(
-            {'error': 'El username ya existe'},
+            {'error': 'El usuario ya existe'},
             status=status.HTTP_400_BAD_REQUEST
         )
 
+    user = User.objects.create_user(
+        username=username,
+        email=email,
+        password=password
+    )
+
+    return Response(
+        {'message': 'Usuario creado exitosamente', 'username': user.username},
+        status=status.HTTP_201_CREATED
+    )
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_user_info(request):
+    """
+    Obtener información del usuario autenticado
+    """
+    user = request.user
+    return Response({
+        'id': user.id,
+        'username': user.username,
+        'email': user.email,
+        'is_staff': user.is_staff
+    })
+
+
+# ========== PRODUCTOS ==========
+
+class StandardPagination(PageNumberPagination):
+    page_size = 100
+    page_size_query_param = 'page_size'
+    max_page_size = 100
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def listar_productos(request):
+    """
+    Listar todos los productos (público)
+    """
+    productos = Producto.objects.all()
+    paginator = StandardPagination()
+    paginated = paginator.paginate_queryset(productos, request)
+    serializer = ProductoSerializer(paginated, many=True)
+    return paginator.get_paginated_response(serializer.data)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated, IsAdminUser])
+def crear_producto(request):
+    """
+    Crear nuevo producto (solo admin)
+    """
+    serializer = ProductoSerializer(data=request.data)
+    if serializer.is_valid():
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated, IsAdminUser])
+def actualizar_producto(request, pk):
+    """
+    Actualizar producto existente (solo admin)
+    """
     try:
-        user = User.objects.create_user(
-            username=username,
-            password=password,
-            email=email
-        )
-        logger.info(f"Usuario registrado exitosamente: {username}")
-        return Response({
-            'mensaje': 'Usuario creado exitosamente',
-            'username': user.username
-        }, status=status.HTTP_201_CREATED)
-    except Exception as e:
-        logger.error(f"Error al registrar usuario: {str(e)}")
+        producto = Producto.objects.get(pk=pk)
+    except Producto.DoesNotExist:
         return Response(
-            {'error': str(e)},
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            {'error': 'Producto no encontrado'},
+            status=status.HTTP_404_NOT_FOUND
         )
+
+    serializer = ProductoSerializer(producto, data=request.data, partial=True)
+    if serializer.is_valid():
+        serializer.save()
+        return Response(serializer.data)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated, IsAdminUser])
+def eliminar_producto(request, pk):
+    """
+    Eliminar producto (solo admin)
+    """
+    try:
+        producto = Producto.objects.get(pk=pk)
+    except Producto.DoesNotExist:
+        return Response(
+            {'error': 'Producto no encontrado'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+    nombre = producto.nombre
+    producto.delete()
+    return Response(
+        {'message': f'Producto "{nombre}" eliminado correctamente'},
+        status=status.HTTP_200_OK
+    )
+
+
+# ========== CATEGORÍAS ==========
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def listar_categorias(request):
+    """
+    Listar todas las categorías (público)
+    """
+    categorias = Categoria.objects.all()
+    paginator = StandardPagination()
+    paginated = paginator.paginate_queryset(categorias, request)
+    serializer = CategoriaSerializer(paginated, many=True)
+    return paginator.get_paginated_response(serializer.data)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated, IsAdminUser])
+def crear_categoria(request):
+    """
+    Crear nueva categoría (solo admin)
+    """
+    serializer = CategoriaSerializer(data=request.data)
+    if serializer.is_valid():
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+# ========== COMPRAS ==========
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def procesar_compra(request):
+    """
+    Procesar compra y descontar stock
+    """
+    items = request.data.get('items', [])
+
+    if not items:
+        return Response(
+            {'error': 'El carrito está vacío'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    errores = []
+    productos_actualizados = []
+
+    # Verificar stock disponible
+    for item in items:
+        try:
+            producto = Producto.objects.get(pk=item['id'])
+            if producto.stock < item['cantidad']:
+                errores.append(
+                    f'{producto.nombre}: stock insuficiente (disponible: {producto.stock})')
+            else:
+                productos_actualizados.append({
+                    'producto': producto,
+                    'cantidad': item['cantidad']
+                })
+        except Producto.DoesNotExist:
+            errores.append(f'Producto ID {item["id"]} no encontrado')
+
+    if errores:
+        return Response(
+            {'error': 'No se pudo procesar la compra', 'detalles': errores},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    # Descontar stock
+    for item in productos_actualizados:
+        producto = item['producto']
+        producto.stock -= item['cantidad']
+        producto.save()
+
+    return Response({
+        'message': 'Compra realizada exitosamente',
+        'productos': len(productos_actualizados)
+    }, status=status.HTTP_200_OK)
