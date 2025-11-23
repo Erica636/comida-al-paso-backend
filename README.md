@@ -195,7 +195,7 @@ Authorization: Bearer {access_token}
 ```bash
 curl -X POST http://localhost:8000/api/token/ \
   -H "Content-Type: application/json" \
-  -d '{"username":"admin","password":"admin123"}'
+  -d '{"username":"tu_usuario","password":"tu_password"}'
 ```
 
 ### Ejemplo: Usar token en petición
@@ -211,7 +211,7 @@ curl -H "Authorization: Bearer {token}" \
 # Obtener token JWT
 curl -X POST http://localhost:8000/api/token/ \
   -H "Content-Type: application/json" \
-  -d '{"username":"test","password":"test1234"}'
+  -d '{"username":"tu_usuario","password":"tu_password"}'
 
 # Respuesta exitosa:
 {
@@ -370,11 +370,16 @@ Niveles configurables via `.env`:
 - Agregar imágenes a productos
 - Implementar sistema de valoraciones
 
-## Usuarios de Prueba
+## Crear Superusuario
 
-| Usuario | Contraseña | Rol |
-|---------|------------|-----|
-| test | test1234 | Administrador |
+Para acceder al panel de administración en Railway, el superusuario se crea automáticamente al desplegar.
+
+Para desarrollo local:
+```bash
+python manage.py createsuperuser
+```
+
+Seguí las instrucciones en la terminal para crear tu usuario administrador.
 
 ## Licencia
 
